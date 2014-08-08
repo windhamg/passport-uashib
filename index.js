@@ -11,15 +11,17 @@
     registration via the standard metadata url (urls.metadata).
 
     author: Dave Stearns
+
+    Modified for use at The University of Arizona by Gary Windham
 */
 
 const passport = require('passport');
 const saml = require('passport-saml');
 const util = require('util');
 
-const uwIdPCert = 'MIID/TCCAuWgAwIBAgIJAMoYJbDt9lKKMA0GCSqGSIb3DQEBBQUAMFwxCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJXQTEhMB8GA1UEChMYVW5pdmVyc2l0eSBvZiBXYXNoaW5ndG9uMR0wGwYDVQQDExRpZHAudS53YXNoaW5ndG9uLmVkdTAeFw0xMTA0MjYxOTEwMzlaFw0yMTA0MjMxOTEwMzlaMFwxCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJXQTEhMB8GA1UEChMYVW5pdmVyc2l0eSBvZiBXYXNoaW5ndG9uMR0wGwYDVQQDExRpZHAudS53YXNoaW5ndG9uLmVkdTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMH9G8m68L0Hf9bmf4/7c+ERxgDQrbq50NfSi2YTQWc1veUIPYbZy1agSNuc4dwn3RtC0uOQbdNTYUAiVTcYgaYceJVB7syWf9QyGIrglZPMu98c5hWb7vqwvs6d3s2Sm7tBib2v6xQDDiZ4KJxpdAvsoPQlmGdgpFfmAsiYrnYFXLTHgbgCc/YhV8lubTakUdI3bMYWfh9dkj+DVGUmt2gLtQUzbuH8EU44vnXgrQYSXNQkmRcyoE3rj4Rhhbu/p5D3P+nuOukLYFOLRaNeiiGyTu3P7gtc/dy/UjUrf+pH75UUU7Lb369dGEfZwvVtITXsdyp0pBfun4CP808H9N0CAwEAAaOBwTCBvjAdBgNVHQ4EFgQUP5smx3ZYKODMkDglkTbduvLcGYAwgY4GA1UdIwSBhjCBg4AUP5smx3ZYKODMkDglkTbduvLcGYChYKReMFwxCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJXQTEhMB8GA1UEChMYVW5pdmVyc2l0eSBvZiBXYXNoaW5ndG9uMR0wGwYDVQQDExRpZHAudS53YXNoaW5ndG9uLmVkdYIJAMoYJbDt9lKKMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAEo7c2CNHEI+Fvz5DhwumU+WHXqwSOK47MxXwNJVpFQ9GPR2ZGDAq6hzLJLAVWcY4kB3ECDkRtysAWSFHm1roOU7xsU9f0C17QokoXfLNC0d7KoivPM6ctl8aRftU5moyFJkkJX3qSExXrl053uxTOQVPms4ypkYv1A/FBZWgSC8eNoYnBnv1Mhy4m8bfeEN7qT9rFoxh4cVjMH1Ykq7JWyFXLEB4ifzH4KHyplt5Ryv61eh6J1YPFa2RurVTyGpHJZeOLUIBvJu15GzcexuDDXe0kg7sHD6PbK0xzEF/QeXP/hXzMxR9kQXB/IR/b2k4ien+EM3eY/ueBcTZ95dgVM=';
-const uwIdPEntryPoint = 'https://idp.u.washington.edu/idp/profile/SAML2/Redirect/SSO';
-const strategyName = 'uwsaml';
+const uaIdPCert = 'MIIFGTCCBAGgAwIBAgICAacwDQYJKoZIhvcNAQEFBQAwVjELMAkGA1UEBhMCVVMxHDAaBgNVBAoTE0luQ29tbW9uIEZlZGVyYXRpb24xKTAnBgNVBAMTIEluQ29tbW9uIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MB4XDTA4MDkwMjE4MTI1NVoXDTEwMDkwMzE4MTI1NVowITEfMB0GA1UEAxMWc2hpYmJvbGV0aC5hcml6b25hLmVkdTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAqBuPxEj2NG2GqJjg7Zw+4mu4XRPa0ufssw3cIASt3IEgufn42asdZI8wzKhWT05byJb4tceUxuL28Um1gQBCVX6zembBwyqD90xsk7OS0YUEs6b48/QRlp2/hgpB4hTRRbFQmb5DCWYB/uL+v5tJuNFSet9lRGsoT0lirQezkL0CAwEAAaOCAqgwggKkMA4GA1UdDwEB/wQEAwIFoDAMBgNVHRMBAf8EAjAAMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjAdBgNVHQ4EFgQUzw3Z4FLbvZT827kCD8nEamfZjokwfgYDVR0jBHcwdYAUky3IYRitY+ObZbOd3Y2TuufKY0WhWqRYMFYxCzAJBgNVBAYTAlVTMRwwGgYDVQQKExNJbkNvbW1vbiBGZWRlcmF0aW9uMSkwJwYDVQQDEyBJbkNvbW1vbiBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eYIBADCBsgYIKwYBBQUHAQEEgaUwgaIwTwYIKwYBBQUHMAKGQ2h0dHA6Ly9pbmNvbW1vbmNhMS5pbmNvbW1vbmZlZGVyYXRpb24ub3JnL2JyaWRnZS9jZXJ0cy9jYS1jZXJ0cy5wN2IwTwYIKwYBBQUHMAKGQ2h0dHA6Ly9pbmNvbW1vbmNhMi5pbmNvbW1vbmZlZGVyYXRpb24ub3JnL2JyaWRnZS9jZXJ0cy9jYS1jZXJ0cy5wN2IwgY0GA1UdHwSBhTCBgjA/oD2gO4Y5aHR0cDovL2luY29tbW9uY3JsMS5pbmNvbW1vbmZlZGVyYXRpb24ub3JnL2NybC9lZWNybHMuY3JsMD+gPaA7hjlodHRwOi8vaW5jb21tb25jcmwyLmluY29tbW9uZmVkZXJhdGlvbi5vcmcvY3JsL2VlY3Jscy5jcmwwXgYDVR0gBFcwVTBTBgsrBgEEAa4jAQQBATBEMEIGCCsGAQUFBwIBFjZodHRwOi8vaW5jb21tb25jYS5pbmNvbW1vbmZlZGVyYXRpb24ub3JnL3ByYWN0aWNlcy5wZGYwIQYDVR0RBBowGIIWc2hpYmJvbGV0aC5hcml6b25hLmVkdTANBgkqhkiG9w0BAQUFAAOCAQEAxJZo4qDSuwBWODXdbOuHwo5v34tHZR6OSjPDGxDJAyNcqVaTICmkq7a1ZIRoga0ju3UcFtcC97sQGMElKMCK8eLdHZ28c/Cpenl/HSrUQMXBtc6Vs+66TsDGSwLnfb17Fo24u1uzOH8UrRfO9zOV8jpt/XwvkNQhgOFpMHX/n4uuvAZdrsxuh24ZsUoGKA3CmzE2p/F1Fthazm/YvrKZOAjQS1kKNw7z7p3MXpnfwZa+lc+oAEgXdCcHL18b4omzMYpvra8DeM0kT40bZQp415GZvJTO+66U36H6oeKUcPyHbO0t35B2yNPTEldklNs+9cbUeA7pKr2ed6JHgScoZA==';
+const uaIdPEntryPoint = 'https://shibboleth.arizona.edu/idp/profile/SAML2/Redirect/SSO';
+const strategyName = 'uasaml';
 
 //standard login, callback, logout, and meta-data URLs
 //these will be exposed from module.exports so that
@@ -28,7 +30,7 @@ const strategyName = 'uwsaml';
 //as the auto-regisration process requires that exact URL
 const urls = {
     metadata: '/Shibboleth.sso/Metadata',
-    uwLogoutUrl: 'https://idp.u.washington.edu/idp/logout'
+    uaLogoutUrl: 'https://shibboleth.arizona.edu/cgi-bin/logout.pl'
 };
 
 //export the urls map
@@ -38,20 +40,70 @@ module.exports.urls = urls;
 //we should give them on the resulting user object
 //add to this with other attrs if you request them
 const profileAttrs = {
-    'urn:oid:0.9.2342.19200300.100.1.1': 'netId',
-    'urn:oid:2.16.840.1.113730.3.1.241': 'displayName',
-    'urn:oid:1.3.6.1.4.1.5923.1.1.1.1': 'affiliation',
-    'urn:oid:2.5.4.3': 'cn',
-    'urn:oid:0.9.2342.19200300.100.1.3': 'email',
-    'urn:oid:2.16.840.1.113730.3.1.3': 'empNum',
-    'urn:oid:1.3.6.1.4.1.5923.1.1.1.6': 'principalName',
-    'urn:oid:2.5.4.42': 'givenName',
-    'urn:oid:2.5.4.18': 'box',
-    'urn:oid:2.5.4.20': 'phone',
-    'urn:oid:2.5.4.4': 'surname',
-    'urn:oid:2.5.4.12': 'title',
-    'urn:oid:1.2.840.113994.200.21': 'studentId',
-    'urn:oid:1.2.840.113994.200.24': 'regId'
+    'urn:oid:1.3.6.1.4.1.5923.1.1.1.6': 'Shib-eppn',
+    'urn:oid:1.3.6.1.4.1.5923.1.1.1.9': 'Shib-affiliation',
+    'urn:oid:1.3.6.1.4.1.5923.1.1.1.1': 'Shib-unscoped-affiliation',
+    'urn:oid:1.3.6.1.4.1.5923.1.1.1.7': 'Shib-entitlement',
+    'urn:oid:1.3.6.1.4.1.5923.1.1.1.10': 'Shib-persistent-id',
+    'urn:oid:1.3.6.1.4.1.5923.1.1.1.5': 'Shib-primary-affiliation',
+    'urn:oid:2.5.4.3': 'Shib-cn',
+    'urn:oid:2.5.4.4': 'Shib-sn',
+    'urn:oid:2.5.4.42': 'Shib-givenName',
+    'urn:oid:2.16.840.1.113730.3.1.4': 'Shib-employeeType',
+    'urn:oid:0.9.2342.19200300.100.1.1': 'Shib-uid',
+    'urn:oid:0.9.2342.19200300.100.1.3': 'Shib-mail',
+    'urn:oid:1.3.6.1.4.1.5923.1.5.1.1': 'Shib-isMemberOf',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.1': 'Shib-uaId',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.49': 'Shib-dateOfBirth',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.56': 'Shib-isoNumber',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.61': 'Shib-emplId',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.64': 'Shib-preferredCn',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.65': 'Shib-preferredSn',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.66': 'Shib-preferredGivenname',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.91': 'Shib-studentAdmitCareerProgramPlan',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.96': 'Shib-studentAPDesc',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.77': 'Shib-studentCareerProgramPlan',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.78': 'Shib-studentPrimaryCareerProgramPlan',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.55': 'Shib-studentHonorsActive',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.31': 'Shib-studentInfoReleaseCode',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.80': 'Shib-studentStatus',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.81': 'Shib-studentStatusHistory',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.13': 'Shib-employeeBldgName',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.14': 'Shib-employeeBldgNum',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.67': 'Shib-employeeCity',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.85': 'Shib-employeeFTE',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.87': 'Shib-employeeHireDate',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.53': 'Shib-employeeIncumbentPosition',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.42': 'Shib-employeeIsFerpaTrained',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.110': 'Shib-employeeOfficialOrg',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.111': 'Shib-employeeOfficialOrgName',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.74': 'Shib-employeeOrgReporting',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.17': 'Shib-employeePhone',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.12': 'Shib-employeePoBox',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.86': 'Shib-employeePositionFTE',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.54': 'Shib-employeePositionFunding',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.8': 'Shib-employeePrimaryDept',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.52': 'Shib-employeePrimaryDeptName',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.75': 'Shib-employeePrimaryOrgReporting',
+    'urn:oid:1.3.6.1.4.1.5943.10.0.90': 'Shib-employeePrimaryTitle',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.94': 'Shib-employeeRetireeTitle',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.15': 'Shib-employeeRoomNum',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.10': 'Shib-employeeRosterDept',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.68': 'Shib-employeeState',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.4': 'Shib-employeeStatus',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.5': 'Shib-employeeStatusDate',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.70': 'Shib-employeeTotalAnnualRate',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.93': 'Shib-employeeTerminationReason',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.3': 'Shib-employeeTitle',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.69': 'Shib-employeeZip',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.104': 'Shib-dccPrimaryActionDate',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.102': 'Shib-dccPrimaryDept',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.103': 'Shib-dccPrimaryDeptName',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.105': 'Shib-dccPrimaryEndDate',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.106': 'Shib-dccPrimaryStatus',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.100': 'Shib-dccPrimaryTitle',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.101': 'Shib-dccPrimaryType',
+    'urn:oid:1.3.6.1.4.1.5643.10.0.107': 'Shib-dccRelation'
 };
 
 function convertProfileToUser(profile) {
@@ -64,7 +116,6 @@ function convertProfileToUser(profile) {
             user[niceName] = profile[attr];
         }
     }
-
     return user;    
 }
 
@@ -82,20 +133,31 @@ function convertProfileToUser(profile) {
 */
 function Strategy(options) {
     samlOptions = {
-        entryPoint: uwIdPEntryPoint,
-        cert: uwIdPCert,
+        entryPoint: uaIdPEntryPoint,
+        cert: uaIdPCert,
         identifierFormat: null,
         issuer: options.entityId || options.domain,
         callbackUrl: 'https://' + options.domain + options.callbackUrl,
         decryptionPvk: options.privateKey,
-        privateCert: options.privateKey
+        privateCert: options.privateKey,
+        acceptedClockSkewMs: 180000
     };
 
     function verify(profile, done) {
         if (!profile)
             return done(new Error('Empty SAML profile returned!'));
-        else        
-            return done(null, convertProfileToUser(profile));                
+        else {    
+            user = convertProfileToUser(profile);
+            if (user) {
+                if ("authz" in options) {
+                    authz = options["authz"](user);
+                    if (!authz.status) {
+                        return done(null, false, { message: authz.message });
+                    }
+                }
+            }
+            return done(null, user);
+        }              
     }
 
     saml.Strategy.call(this, samlOptions, verify);
@@ -110,9 +172,9 @@ module.exports.Strategy = Strategy;
 /*
     Route implementation for the standard Shibboleth metadata route
     usage:
-        var uwshib = require(...);
-        var strategy = new uwshib.Strategy({...});
-        app.get(uwshib.urls.metadata, uwshib.metadataRoute(strategy, myPublicCert));
+        var uashib = require(...);
+        var strategy = new uashib.Strategy({...});
+        app.get(uashib.urls.metadata, uashib.metadataRoute(strategy, myPublicCert));
 */
 module.exports.metadataRoute = function(strategy, publicCert) {
     return function(req, res) {
@@ -140,7 +202,7 @@ module.exports.ensureAuth = function(loginUrl) {
             return next();
         else {
             req.session.authRedirectUrl = req.url;
-            res.redirect(loginUrl);            
+            res.redirect(loginUrl);
         }
     }
 };
@@ -151,11 +213,11 @@ module.exports.ensureAuth = function(loginUrl) {
     capture the current URL in session state, and when your callback route
     is called, you can use this to get back to the originally-requested URL.
     usage:
-        var uwshib = require(...);
-        var strategy = new uwshib.Strategy({...});
+        var uashib = require(...);
+        var strategy = new uashib.Strategy({...});
         app.get('/login', passport.authenticate(strategy.name));
-        app.post('/login/callback', passport.authenticate(strategy.name), uwshib.backtoUrl());
-        app.use(uwshib.ensureAuth('/login'));
+        app.post('/login/callback', passport.authenticate(strategy.name), uashib.backtoUrl());
+        app.use(uashib.ensureAuth('/login'));
 */
 module.exports.backToUrl = function(defaultUrl) {
     return function(req, res) {
@@ -164,4 +226,5 @@ module.exports.backToUrl = function(defaultUrl) {
         res.redirect(url || defaultUrl || '/');
     }
 };
+
 
