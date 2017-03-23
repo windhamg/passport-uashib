@@ -1,6 +1,6 @@
 {
     "name": "passport-uashib",
-    "version": "0.0.6",
+    "version": "0.0.1",
     "license": "MIT",
     "keywords": [
         "passport",
@@ -17,9 +17,9 @@
         "url": "https://github.com/windhamg/passport-uashib"
     },
     "author": {
-        "name": "Dave Stearns",
-        "email": "dlsinfo@uw.edu",
-        "url": "https://ischool.uw.edu/people/faculty/dlsinfo"
+        "name": "Gary Windham",
+        "email": "windhamg@email.arizona.edu",
+        "url": "http://sia.uits.arizona.edu"
     },
     "bugs": "https://github.com/windhamg/passport-uashib/issues",
     "main": "index.js",

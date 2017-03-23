@@ -1,9 +1,9 @@
 "use strict;"
 /*
-    Example script for the passport-uwshib module
+    Example script for the passport-uashib module
 
     This should be run on a server that will be or
-    already has been registered with the UW Shibboleth
+    already has been registered with the UA Shibboleth
     Identity Provider (IdP).
 */
 
@@ -20,7 +20,7 @@ var bodyParser = require('body-parser');        //body parsing middleware
 var cookieParser = require('cookie-parser');    //cookie parsing middleware
 var session = require('express-session');       //express session management
 var passport = require('passport');             //authentication middleware
-var uwshib = require('passport-uwshib');        //UW Shibboleth auth strategy
+var uashib = require('passport-uashib');        //UW Shibboleth auth strategy
 
 ///////////////////////////////////////////////////////////////////////////////
 // load files and read environment variables
@@ -61,7 +61,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //create the UW Shibboleth Strategy and tell Passport to use it
-var strategy = new uwshib.Strategy({
+var strategy = new uashib.Strategy({
     entityId: domain,
     privateKey: privateKey,
     callbackUrl: loginCallbackUrl,
@@ -87,17 +87,17 @@ passport.deserializeUser(function(user, done){
 ///////////////////////////////////////////////////////////////////////////////
 // login, login callback, and metadata routes
 //
-app.get(loginUrl, passport.authenticate(strategy.name), uwshib.backToUrl());
-app.post(loginCallbackUrl, passport.authenticate(strategy.name), uwshib.backToUrl());
-app.get(uwshib.urls.metadata, uwshib.metadataRoute(strategy, publicCert));
+app.get(loginUrl, passport.authenticate(strategy.name), uashib.backToUrl());
+app.post(loginCallbackUrl, passport.authenticate(strategy.name), uashib.backToUrl());
+app.get(uashib.urls.metadata, uashib.metadataRoute(strategy, publicCert));
 
 //secure all routes following this
 //alternatively, you can use ensureAuth as middleware on specific routes
 //example:
-//  app.get('protected/resource', uwshib.ensureAuth(loginUrl), function(req, res) {
+//  app.get('protected/resource', uashib.ensureAuth(loginUrl), function(req, res) {
 //      //route code
 //  });
-app.use(uwshib.ensureAuth(loginUrl));
+app.use(uashib.ensureAuth(loginUrl));
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ app.get('/',
     function(req, res) {
         //req.user will contain the user object sent on by the
         //passport.deserializeUser() function above
-        res.send('Hello ' + req.user.displayName + '!');
+        res.send('Hello ' + req.user.cn + '!');
     }
 );
 
