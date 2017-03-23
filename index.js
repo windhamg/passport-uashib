@@ -5,9 +5,9 @@
     UW Shibboleth Passport Authentication Module
 
     This module exposes a passport Strategy object that is pre-configured to
-    work with the UW's Shibboleth identity provider (IdP). To use this, you 
-    must register your server with the UW IdP, and you can use the 
-    metadataRoute() method below to provide the metadata necessary for 
+    work with the UW's Shibboleth identity provider (IdP). To use this, you
+    must register your server with the UW IdP, and you can use the
+    metadataRoute() method below to provide the metadata necessary for
     registration via the standard metadata url (urls.metadata).
 
     author: Dave Stearns
@@ -116,13 +116,13 @@ function convertProfileToUser(profile) {
             user[niceName] = profile[attr];
         }
     }
-    return user;    
+    return user;
 }
 
 /*
     Passport Strategy for UW Shibboleth Authentication
-    This class extends passport-saml's Strategy, providing the necessary 
-    options and handling the conversion of the returned profile into a 
+    This class extends passport-saml's Strategy, providing the necessary
+    options and handling the conversion of the returned profile into a
     sensible user object.
 
     options should contain:
@@ -146,7 +146,7 @@ function Strategy(options) {
     function verify(profile, done) {
         if (!profile)
             return done(new Error('Empty SAML profile returned!'));
-        else {    
+        else {
             user = convertProfileToUser(profile);
             if (user) {
                 if ("authz" in options) {
@@ -157,7 +157,7 @@ function Strategy(options) {
                 }
             }
             return done(null, user);
-        }              
+        }
     }
 
     saml.Strategy.call(this, samlOptions, verify);
@@ -208,6 +208,33 @@ module.exports.ensureAuth = function(loginUrl) {
 };
 
 /*
+    Middleware for ensuring that the user has authenticated.
+    You can use this in two different ways. If you pass this to
+    app.use(), it will secure all routes added after that.
+    Or you can use it selectively on routes that require authentication
+    like so:
+        app.get('/foo/bar', ensureAuthXHR(responseObj), function(req, res) {
+            //route implementation
+        });
+
+    where responseObj is a Javascript object representing the JSON response to
+    return to the XmlHttpRequest (with 401 status code) indicating that authentication failed.
+*/
+module.exports.ensureAuthXHR = function(responseObj) {
+    return function(req, res, next) {
+        if (req.isAuthenticated())
+            return next();
+        else {
+            if (responseObj) {
+              res.status(401).json(responseObj);
+            } else {
+              res.status(401).send({ error: 'authentication failed' });
+            }
+        }
+    }
+};
+
+/*
     Middleware for redirecting back to the originally requested URL after
     a successful authentication. The ensureAuth() middleware above will
     capture the current URL in session state, and when your callback route
@@ -226,5 +253,3 @@ module.exports.backToUrl = function(defaultUrl) {
         res.redirect(url || defaultUrl || '/');
     }
 };
-
-
