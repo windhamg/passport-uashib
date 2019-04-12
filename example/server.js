@@ -33,6 +33,10 @@ var domain = process.env.DOMAIN;
 if (!domain || domain.length == 0)
     throw new Error('You must specify the domain name of this server via the DOMAIN environment variable!');
 
+var entityId = process.env.ENTITYID || process.env.DOMAIN;
+if (!entityId || entityId.length == 0)
+    throw new Error('You must specify the entityId of this server via the ENTITYID environment variable!');
+
 var httpPort = process.env.HTTPPORT || 80;
 var httpsPort = process.env.HTTPSPORT || 443;
 
@@ -62,7 +66,7 @@ app.use(passport.session());
 
 //create the UW Shibboleth Strategy and tell Passport to use it
 var strategy = new uashib.Strategy({
-    entityId: domain,
+    entityId: entityId,
     privateKey: privateKey,
     callbackUrl: loginCallbackUrl,
     domain: domain
@@ -111,7 +115,7 @@ app.get('/',
     function(req, res) {
         //req.user will contain the user object sent on by the
         //passport.deserializeUser() function above
-        res.send('Hello ' + req.user.cn + '!');
+        res.send('Hello ' + req.user['Shib-cn'] + '!');
     }
 );
 
